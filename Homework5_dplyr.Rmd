@@ -1,0 +1,313 @@
+---
+title: "Homework – dplyr Core Verbs"
+author: "Dr. Shoemaker"
+date: "DATA 2401"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+This assignment practices the dplyr verbs: `select()`, `mutate()`, `filter()`, `arrange()`, `summarize()`, `group_by()`, and the `slice_*()` functions.
+
+You will use three datasets:
+
+* `penguins` (package: **palmerpenguins**)
+* `babynames` (package: **babynames**)
+* A housing dataset from a CSV (read via **readr**)
+
+## Submission + expectations
+
+1. Submit your Github link to the assignment repository containing your **knitted HTML** file and the .Rmd file.
+2. For each question, write **one dplyr pipeline** (you may assign the result to an object or print it).
+3. Unless a question says otherwise, assume:
+   * **Ignore missing values** by filtering them out in the relevant columns for that question.
+   * If there are **ties** for “oldest / largest / top / bottom,” **keep all tied rows** (`with_ties = TRUE` is fine).
+4. When you “show” results, include only the columns needed to verify your work (plus any helpful context columns).
+
+
+```{r}
+library(tidyverse)
+library(readr)
+library(babynames)       # install.packages("babynames") once per machine
+library(palmerpenguins)  # install.packages("palmerpenguins") once per machine
+```
+
+---
+
+# Part A — Penguins
+
+```{r}
+glimpse(penguins)
+```
+
+## A1. Column selection and filtering
+
+Select the columns `species`, `island`, `sex`, `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `body_mass_g`.
+
+Then, filter to rows with **no missing values in these selected columns**.
+
+Finally, report how many rows remain.
+
+```{r}
+# your code here
+```
+
+## A2. New variables and arranging
+
+Starting from your cleaned dataset in A1:
+
+Add:
+
+* `bill_ratio = bill_length_mm / bill_depth_mm`
+* `body_mass_kg = body_mass_g / 1000`
+
+Arrange by descending `bill_ratio` and show the **top 5 rows**. (Include `species`, `island`, `sex`, `bill_length_mm`, `bill_depth_mm`, and `bill_ratio` in what you show.)
+
+```{r}
+# your code here
+```
+
+## A3. Grouped summaries
+
+Starting from your cleaned dataset in A1:
+
+For each combination of `(species, island)` compute:
+
+* number of penguins (`n_penguins = n()`)
+* mean `flipper_length_mm`
+* mean `body_mass_g`
+
+Keep only groups with **at least 10 penguins**, and arrange by descending mean body mass.
+
+```{r}
+# your code here
+```
+
+## A4. `slice_*` usage
+
+Starting from your cleaned dataset in A1:
+
+For each species, use `slice_sample()` to choose 4 penguins from the bunch.
+
+Return a tibble that includes your selection.
+(Include at least `species`, `island`, `sex`, and `body_mass_g`.)
+
+```{r}
+# your code here
+```
+
+---
+
+# Part B — Babynames
+
+```{r}
+glimpse(babynames)
+help(babynames)
+```
+
+## B1. One-name dataset
+
+Pick **one name** that appears across many years (avoid extremely rare names).
+
+Select `year`, `sex`, `name`, `n`, `prop`.
+
+Filter to only your chosen name, save as `name_one`, then run:
+
+* `dim(name_one)`
+* `head(name_one)`
+* `class(name_one)`
+
+```{r}
+# your code here
+```
+
+## B2. Popularity flag
+
+Using `name_one`:
+
+Add a boolean variable `is_popular` for rows where `prop > 0.01`.
+
+Then filter to only `is_popular == TRUE`.
+
+If your chosen name never exceeds 0.01 in any year, pick a different name and try again.
+
+```{r}
+# your code here
+```
+
+## B3. Peak year
+
+Using `name_one`:
+
+Find the year (or years) where your chosen name has the **maximum** value of `n`. (If there are ties, keep all tied rows.)
+
+Show `year`, `sex`, `name`, `n`.
+
+```{r}
+# your code here
+```
+
+## B4. Top name in a year
+
+Back to the full dataset, `babynames`. Choose a single year between 1880 and 2017.
+
+For that year, find the most common name **for each sex**. The most common is determined by the highest proportion value, `prop`.
+
+Your final result should have **two rows** (one for each sex) and should include: `year`, `sex`, `name`, and `n`.
+
+```{r}
+# your code here
+```
+
+## B5. All the years
+
+Modify your code from B4 to look into a series of years of your choosing, instead of just one. 
+
+Your final result should now have two rows for every year you've chosen (if you chose 3 years, then there are 6 rows in the summary) and should include: `year`, `sex`, `name`, and `n`.
+
+```{r}
+# your code here
+```
+
+## B6. `n` vs `n()`
+
+Run the following and explain what `n()` and `sum(n)` tell you in plain language
+(2–4 sentences total).
+
+```{r}
+babynames %>%
+  filter(year == 1980) %>% 
+  summarize(n_rows = n(), total_babies = sum(n))
+```
+
+## B7. Challenge Question: Decade leaders
+
+Create a `decade` variable.
+
+Hint: a clean approach is: `decade = (year %/% 10) * 10`
+
+Then:
+
+1. For each `(decade, name, sex)` compute `total_n = sum(n)`.
+2. Within each `(decade, sex)`, keep the **top 5 names** by `total_n`.
+   (Ties are okay.)
+
+Show `decade`, `sex`, `name`, and `total_n`, arranged by `decade`, `sex`, and descending `total_n`.
+
+```{r}
+# your code here
+```
+
+---
+
+# Part C — Housing
+
+```{r}
+houses <- read_csv("https://raw.githubusercontent.com/kshoemaker/Class_test/master/housedata.csv") %>%
+  select(
+    TotalSqFeet = GrLivArea,
+    PorchSqFeet = ScreenPorch,
+    everything()
+  )
+
+glimpse(houses)
+```
+
+## C1. Extremes
+
+1. Find the **oldest** house(s) based on `YearBuilt` (smallest `YearBuilt`).
+2. Find the **largest lot** house(s) based on `LotArea` (largest `LotArea`).
+
+If there are ties, keep all tied rows.
+
+Show the key columns needed to verify your result (include `YearBuilt` and `LotArea`, plus an identifier column if one exists).
+
+```{r}
+# your code here
+```
+
+## C2. Central air
+
+Count how many houses have central air (`CentralAir == "Y"`).
+Also report how many do not (`CentralAir == "N"`).
+
+Your final output should be a one-row summary with two columns (or a small 2-row table).
+
+```{r}
+# your code here
+```
+
+## C3. Indicators and ratios
+
+Starting from `houses`:
+
+Add:
+
+* `Is_Remodeled = YearRemodAdd > YearBuilt`
+* `SqFtPerRoom = TotalSqFeet / TotRms_AbvGrd`
+* `PricePerSqFt = SalePrice / TotalSqFeet` **only if `TotalSqFeet > 0`**, otherwise set to `NA`.
+
+Then:
+
+1. Show the **top 10** houses by `PricePerSqFt`
+2. Show the **bottom 10** houses by `PricePerSqFt`
+
+(Exclude rows where `PricePerSqFt` is `NA` before slicing. You do not need to put both these selections into one dataframe.)
+
+```{r}
+# your code here
+```
+
+## C4. Building type profile
+
+For each `BldgType`, compute:
+
+* number of sales
+* mean `TotalSqFeet`
+* median `SalePrice`
+* mean `PricePerSqFt` (ignore `NA` values)
+
+Arrange by descending median `SalePrice`.
+
+Then write **1–2 sentences** interpreting the result (reference at least one number from your table).
+
+```{r}
+# your code here
+```
+
+## C5. Neighborhoods
+
+For each `Neighborhood`, compute:
+
+* number of sales
+* median `SalePrice`
+* 25th percentile of `SalePrice` (P25)
+* 75th percentile of `SalePrice` (P75)
+
+Keep only neighborhoods with **at least 20 sales**.
+
+Show:
+
+1. the **top 5** neighborhoods by median `SalePrice`
+2. the **bottom 5** neighborhoods by median `SalePrice`
+
+```{r}
+# your code here
+```
+
+## C6. Targeted slices
+
+1. Among remodeled houses (`Is_Remodeled == TRUE`), compute the remodel gap: `RemodelGap = YearRemodAdd - YearBuilt`
+
+Then find the **5 largest** remodel gaps.
+
+2. Among houses **without** central air (`CentralAir == "N"`), find the **5 highest** sale prices.
+
+For each part, show enough columns to verify the result.
+
+```{r}
+# your code here
+```
