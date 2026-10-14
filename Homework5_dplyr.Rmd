@@ -52,8 +52,12 @@ Then, filter to rows with **no missing values in these selected columns**.
 Finally, report how many rows remain.
 
 ```{r}
-# your code here
+my_penguins <- penguins |> select(species, island, sex, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) |> drop_na()
+
+n_penguins <- nrow(my_penguins)
 ```
+
+There are `r n_penguins` penguins in the data, once we filter to the non-missing values on the numeric variables. 
 
 ## A2. New variables and arranging
 
@@ -67,7 +71,11 @@ Add:
 Arrange by descending `bill_ratio` and show the **top 5 rows**. (Include `species`, `island`, `sex`, `bill_length_mm`, `bill_depth_mm`, and `bill_ratio` in what you show.)
 
 ```{r}
-# your code here
+my_penguins |> 
+  mutate(bill_ratio = bill_length_mm / bill_depth_mm, 
+         body_mass_kg = body_mass_g / 1000) |> 
+  arrange(-bill_ratio) |> select(species, island, sex, bill_length_mm, bill_depth_mm, bill_ratio) |>
+  head(5)
 ```
 
 ## A3. Grouped summaries
@@ -83,7 +91,14 @@ For each combination of `(species, island)` compute:
 Keep only groups with **at least 10 penguins**, and arrange by descending mean body mass.
 
 ```{r}
-# your code here
+my_penguins |> 
+  group_by(species, island) |> 
+  summarise(n_penguins = n(),
+            avg_flip = mean(flipper_length_mm), 
+            avg_mass = mean(body_mass_g)) |> 
+  filter(n_penguins >= 10) |> 
+  arrange(-avg_mass)
+  
 ```
 
 ## A4. `slice_*` usage
@@ -96,7 +111,7 @@ Return a tibble that includes your selection.
 (Include at least `species`, `island`, `sex`, and `body_mass_g`.)
 
 ```{r}
-# your code here
+my_penguins |> group_by(species) |> slice_sample(n = 4)
 ```
 
 ---
@@ -121,7 +136,10 @@ Filter to only your chosen name, save as `name_one`, then run:
 * `class(name_one)`
 
 ```{r}
-# your code here
+name_one <- babynames |> filter(name == "Mary") |> select(year, sex, name, n, prop) 
+dim(name_one)
+head(name_one)
+class(name_one)
 ```
 
 ## B2. Popularity flag
@@ -135,7 +153,7 @@ Then filter to only `is_popular == TRUE`.
 If your chosen name never exceeds 0.01 in any year, pick a different name and try again.
 
 ```{r}
-# your code here
+name_one |> mutate(is_popular = prop > 0.01) |> filter(is_popular == T)
 ```
 
 ## B3. Peak year
@@ -147,7 +165,7 @@ Find the year (or years) where your chosen name has the **maximum** value of `n`
 Show `year`, `sex`, `name`, `n`.
 
 ```{r}
-# your code here
+name_one |> slice_max(n) |> select(year, sex, name, n)
 ```
 
 ## B4. Top name in a year
@@ -159,7 +177,7 @@ For that year, find the most common name **for each sex**. The most common is de
 Your final result should have **two rows** (one for each sex) and should include: `year`, `sex`, `name`, and `n`.
 
 ```{r}
-# your code here
+babynames |> filter(year == 1950) |> group_by(sex) |> slice_max(prop) |> select(year, sex, name, n)
 ```
 
 ## B5. All the years
@@ -169,7 +187,9 @@ Modify your code from B4 to look into a series of years of your choosing, instea
 Your final result should now have two rows for every year you've chosen (if you chose 3 years, then there are 6 rows in the summary) and should include: `year`, `sex`, `name`, and `n`.
 
 ```{r}
-# your code here
+years <- 1950:1960
+babynames |> filter(year %in% years) |> group_by(sex, year) |> slice_max(prop) |> select(year, sex, name, n)
+
 ```
 
 ## B6. `n` vs `n()`
@@ -182,6 +202,8 @@ babynames %>%
   filter(year == 1980) %>% 
   summarize(n_rows = n(), total_babies = sum(n))
 ```
+
+`n_rows` is the number of unique names in that year (where Bob given to boys is counted separately than Bob given to girls), and `total_babies` is the total number of babies given those names. 
 
 ## B7. Challenge Question: Decade leaders
 
@@ -198,7 +220,14 @@ Then:
 Show `decade`, `sex`, `name`, and `total_n`, arranged by `decade`, `sex`, and descending `total_n`.
 
 ```{r}
-# your code here
+babynames |> 
+  mutate(decade = (year %/% 10) * 10) |> 
+  group_by(decade, name, sex)  |> 
+  summarise(total_n = sum(n)) |> 
+  group_by(decade, sex) |> 
+  slice_max(total_n) |> 
+  select(decade, sex, name, total_n) |> 
+  arrange(decade, sex, -total_n)
 ```
 
 ---
@@ -226,7 +255,8 @@ If there are ties, keep all tied rows.
 Show the key columns needed to verify your result (include `YearBuilt` and `LotArea`, plus an identifier column if one exists).
 
 ```{r}
-# your code here
+houses |> slice_min(YearBuilt, n = 1) |> select(YearBuilt, everything())
+houses |> slice_max(LotArea, n = 1) |> select(LotArea, everything())
 ```
 
 ## C2. Central air
@@ -237,7 +267,7 @@ Also report how many do not (`CentralAir == "N"`).
 Your final output should be a one-row summary with two columns (or a small 2-row table).
 
 ```{r}
-# your code here
+houses |> count(CentralAir) # quickest way, not only way
 ```
 
 ## C3. Indicators and ratios
@@ -258,7 +288,18 @@ Then:
 (Exclude rows where `PricePerSqFt` is `NA` before slicing. You do not need to put both these selections into one dataframe.)
 
 ```{r}
-# your code here
+houses |> mutate(Is_Remodeled = YearRemodAdd > YearBuilt,
+                 SqFtPerRoom = TotalSqFeet / TotRmsAbvGrd,
+                 PricePerSqFt = case_when(
+                   TotalSqFeet > 0 ~ SalePrice / TotalSqFeet,
+                   .default = NA
+                   )
+                 ) -> houses
+
+# do you need case_when here? not really. you just need to get the "inf" values to be NA somehow, however you like. 
+
+houses |> drop_na(PricePerSqFt) |> slice_max(PricePerSqFt, n = 10)
+houses |> drop_na(PricePerSqFt) |> slice_min(PricePerSqFt, n = 10)
 ```
 
 ## C4. Building type profile
@@ -275,7 +316,13 @@ Arrange by descending median `SalePrice`.
 Then write **1–2 sentences** interpreting the result (reference at least one number from your table).
 
 ```{r}
-# your code here
+houses |> 
+  group_by(BldgType) |> 
+  summarise(n_sales = n(), 
+            mean_sqft = mean(TotalSqFeet),
+            median_price = median(SalePrice),
+            mean_price = mean(PricePerSqFt, na.rm  = T)) |> 
+  arrange(-median_price)
 ```
 
 ## C5. Neighborhoods
@@ -295,7 +342,16 @@ Show:
 2. the **bottom 5** neighborhoods by median `SalePrice`
 
 ```{r}
-# your code here
+houses |> 
+  group_by(Neighborhood) |> 
+  summarise(n_sales = n(), 
+            median_price = median(SalePrice),
+            Sale_p25 = quantile(SalePrice, probs = 0.25, na.rm = T),
+            Sale_p75 = quantile(SalePrice, probs = 0.75, na.rm = T)) |> 
+  filter(n_sales >= 20) -> neighborhood_summary
+
+neighborhood_summary |> slice_max(median_price, n = 5)
+neighborhood_summary |> slice_min(median_price, n = 5)
 ```
 
 ## C6. Targeted slices
@@ -309,5 +365,14 @@ Then find the **5 largest** remodel gaps.
 For each part, show enough columns to verify the result.
 
 ```{r}
-# your code here
+houses |> 
+  filter(Is_Remodeled == T) |> 
+  mutate(RemodelGap = YearRemodAdd - YearBuilt) |> 
+  slice_max(RemodelGap, n = 5) |> 
+  select(RemodelGap, YearRemodAdd, YearBuilt)
+
+houses |> 
+  filter(CentralAir == "N") |> 
+  slice_max(SalePrice, n = 5) |> 
+  select(SalePrice, CentralAir)
 ```
